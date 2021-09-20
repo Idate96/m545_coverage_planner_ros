@@ -1,0 +1,3 @@
+control_command_topic: "/m545_path_follower_ros/command"
+planning_service: "/m545_planner_node/ompl_rs_planner_ros/planning_service"
+current_state_service: "/m545_path_follower_ros/get_curr_se2_state"
