@@ -27,7 +27,6 @@ class GlobalPathRos {
   GlobalPathRos(ros::NodeHandle& nh);
   ~GlobalPathRos();
 
-  void trackingStatusCallback(const m545_planner_msgs::PathFollowerTrackingStatusRos& msg);
   void publishGlobalPath();
   void loadPathFromFile(std::string filename);
   void setPath(std::vector<geometry_msgs::Pose>& path);

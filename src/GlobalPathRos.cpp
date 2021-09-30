@@ -24,29 +24,6 @@ GlobalPathRos::GlobalPathRos(ros::NodeHandle& nh) : nh_(nh) {
 GlobalPathRos::~GlobalPathRos() {}
 
 void GlobalPathRos::loadPathFromFile(std::string filename) {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    ROS_ERROR("Could not open file %s", filename.c_str());
-    return;
-  }
-  // skip over the header line
-  // iterate over the lines to extract the data into an eigen vector
-  std::string line;
-  while (std::getline(file, line)) {
-    if (line.empty()) {
-      continue;
-    }
-    std::vector<double> data;
-    std::stringstream ss(line);
-    std::string item;
-    while (std::getline(ss, item, ',')) {
-      data.push_back(std::stod(item));
-    }
-    if (data.size() != 2) {
-      ROS_ERROR("Invalid data in line %s", line.c_str());
-      continue;
-    }
-  }
 }
 
 void GlobalPathRos::requestPlan(geometry_msgs::Pose& start, geometry_msgs::Pose& goal) {
@@ -133,25 +110,6 @@ void GlobalPathRos::requestStopTracking() {
 void GlobalPathRos::loadPath(std::vector<geometry_msgs::Pose>& path) {
   globalPath_ = path;
   currentSegmentIndex_ = 0;
-}
-
-void GlobalPathRos::trackingStatusCallback(const m545_planner_msgs::PathFollowerTrackingStatusRos& msg) {
-  // when tracking status switches to true, request a new plan
-
-  if (!!msg.status != prevTracking_) {
-    ROS_INFO("Tracking status changed to %d", msg.status);
-    ROS_INFO("Is path completed : %d", completedPath());
-    if (!completedPath()) {
-      // current state should match last waypoint
-      requestPlanCurrentSegment(true);
-      requestStartTracking();
-      currentSegmentIndex_++;
-    } else {
-      requestStopTracking();
-    }
-    prevTracking_ = msg.status;
-  }
-  // ROS_INFO("Tracking status global path: %d", msg.status);
 }
 
 bool GlobalPathRos::completedPath() { return currentSegmentIndex_ > globalPath_.size() - 1; }
