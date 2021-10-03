@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.tpp": "cpp",
+    "any": "cpp",
+    "functional": "cpp",
+    "memory": "cpp",
+    "optional": "cpp",
+    "sstream": "cpp"
+  }
+}

@@ -13,6 +13,27 @@
             "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "linux-clang-x64"
+        },
+        {
+            "name": "coverage",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/lorenzo/catkin_ws/src/m545_highlevel_controller/**"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-clang-x64",
+            "defines": [],
+            "macFrameworkPath": [],
+            "forcedInclude": [],
+            "compilerArgs": [],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
         }
     ],
     "version": 4

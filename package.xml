@@ -50,7 +50,9 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <depend>eigen</depend>
+  <depend>roscpp</depend>
   <depend>se2_navigation_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>m545_planner_msgs</depend>
   <depend>m545_path_utils</depend>
   <test_depend>gtest</test_depend>
