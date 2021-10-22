@@ -2,11 +2,16 @@
 
 #include <se2_navigation_msgs/RequestPathSrv.h>
 
+#include <algorithm>
 #include <fstream>
 
+#include "m545_path_utils/Helpers.hpp"
 #include "se2_navigation_msgs/ControllerCommand.hpp"
 #include "se2_navigation_msgs/RequestCurrentStateSrv.h"
 #include "se2_navigation_msgs/SendControllerCommandSrv.h"
+
+// include std::experimental
+// #include <experimental/filesystem>
 
 namespace m545_coverage_planner_ros {
 
@@ -140,13 +145,73 @@ void GlobalPathPlannerRos::LoadDummyPath() {
   pose.orientation.w = q.w();
   global_path_.push_back(pose);
 
-  pose.position.x = 5.0;
-  pose.position.y = 0.0;
+  // pose.position.x = 5.0;
+  // pose.position.y = 0.0;
+  // global_path_.push_back(pose);
+
+  // pose.position.x = 10.0;
+  // pose.position.y = 0;
+  // global_path_.push_back(pose);
+  pose.position.x = 10.0;
+  pose.position.y = 0;
+  float yaw_1 = 0;
+  auto q_1 = m545_path_utils::eulerToQuaternion(0.0, 0.0, yaw_1);
+  pose.orientation.x = q_1.x();
+  pose.orientation.y = q_1.y();
+  pose.orientation.z = q_1.z();
+  pose.orientation.w = q_1.w();
   global_path_.push_back(pose);
 
   pose.position.x = 10.0;
-  pose.position.y = 0;
+  pose.position.y = 30;
+  float yaw_2 = -M_PI;
+  auto q_2 = m545_path_utils::eulerToQuaternion(0.0, 0.0, yaw_2);
+  pose.orientation.x = q_2.x();
+  pose.orientation.y = q_2.y();
+  pose.orientation.z = q_2.z();
+  pose.orientation.w = q_2.w();
   global_path_.push_back(pose);
+}
+
+void GlobalPathPlannerRos::LoadPathFromCsv(std::string filename) {
+  // Load csv file from path
+  std::ifstream csv_file(filename);
+  // print curretn working directory with the stl library
+  // ROS_INFO_STREAM("Current working directory " << std::experimental::filesystem::current_path());
+  if (csv_file.fail()) {
+    ROS_ERROR("Failed to open file %s", filename.c_str());
+    return;
+  }
+  // find the number of lines of the csv file
+  // auto num_lines = std::count(std::istreambuf_iterator<char>(csv_file), std::istreambuf_iterator<char>(), '\n');
+  // ROS_INFO_STREAM("Number of lines in csv file: " << num_lines);
+
+  std::string line;
+  // vector of poses to be loaded from csv file: (x, y, yaw)
+  std::vector<geometry_msgs::Pose> path;
+  // check if file is opened correcly
+
+  // iterate through the lines
+  while (std::getline(csv_file, line)) {
+    std::istringstream iss(line);
+    // store the values x, y, yaw separated by a comma
+    std::vector<std::string> results(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+    // print the results
+    ROS_INFO_STREAM("x: " << results[0] << " y: " << results[1] << " yaw: " << results[2]);
+    geometry_msgs::Pose pose;
+    pose.position.x = std::stof(results[0]);
+    pose.position.y = std::stof(results[1]);
+
+    double yaw = std::stof(results[2]);
+    auto q = m545_path_utils::eulerToQuaternion(0.0, 0.0, yaw);
+    pose.orientation.x = q.x();
+    pose.orientation.y = q.y();
+    pose.orientation.z = q.z();
+    pose.orientation.w = q.w();
+
+    path.push_back(pose);
+  }
+  global_path_ = path;
 }
 
 bool GlobalPathPlannerRos::CompletedPath() { return current_segment_index_ >= global_path_.size() - 1; }

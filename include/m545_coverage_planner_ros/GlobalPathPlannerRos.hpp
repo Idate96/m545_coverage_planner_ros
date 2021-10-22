@@ -5,8 +5,6 @@
 
 #include <eigen3/Eigen/Dense>
 
-#include "m545_path_utils/Helpers.hpp"
-
 namespace m545_coverage_planner_ros {
 
 template <typename Req, typename Res>
@@ -42,8 +40,12 @@ class GlobalPathPlannerRos {
   void RequestPose(geometry_msgs::Pose& pose);
   bool CompletedPath();
   void LoadPath(std::vector<geometry_msgs::Pose>& path);
-  const std::vector<geometry_msgs::Pose>& getPath();
   void LoadDummyPath();
+  /*!
+    * \brief Load a vector of SE3 poses from a csv file
+     \param filename The path to the csv file
+    */
+  void LoadPathFromCsv(std::string filename);
 
   // ros
   ros::NodeHandle nh_;

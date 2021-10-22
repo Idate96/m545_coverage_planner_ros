@@ -33,7 +33,7 @@ catkin_package(
     Eigen3
 )
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall)
 
@@ -62,6 +62,7 @@ add_executable(${PROJECT_NAME}_node
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
+  stdc++fs
 )
 
 target_link_libraries(${PROJECT_NAME}_node
@@ -151,7 +152,9 @@ if(CATKIN_ENABLE_TESTING)
     ${EIGEN3_INCLUDE_DIR}
   )
 
-  target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}-test 
+    ${PROJECT_NAME}
+    stdc++fs)
 
   find_package(cmake_code_coverage QUIET)
   if(cmake_code_coverage_FOUND)
