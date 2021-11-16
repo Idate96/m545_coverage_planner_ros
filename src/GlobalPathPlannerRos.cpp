@@ -1,7 +1,6 @@
 #include "m545_coverage_planner_ros/GlobalPathPlannerRos.hpp"
 
 #include <se2_navigation_msgs/RequestPathSrv.h>
-
 #include <algorithm>
 #include <fstream>
 
@@ -17,6 +16,12 @@ namespace m545_coverage_planner_ros {
 
 GlobalPathPlannerRos::~GlobalPathPlannerRos() {}
 
+void GlobalPathPlannerRos::Initialize(double dt) {
+  // load parammeters
+  // load path
+  this->InitRos();
+}
+
 void GlobalPathPlannerRos::InitRos() {
   ROS_INFO("[GlobalPathPlannerRos]: Initialized");
   // load ros parameters
@@ -27,12 +32,35 @@ void GlobalPathPlannerRos::InitRos() {
                          "/m545_planner_node/ompl_rs_planner_ros/planning_service");
   nh_.param<std::string>("current_state_service", current_state_service_name_,
                          "/m545_path_follower_ros/get_curr_se2_state");
+  nh_.param<std::string>("path_topic", path_topic_, "/coverage/poses");
+  globalPathSub_ = nh_.subscribe(path_topic_, 1, &GlobalPathPlannerRos::globalPathCallback, this);                       
 }
+/*!
+  * \brief Callback for the global path topic
+  * \param msg The global path message of type geometry_msgs::PoseArray
+  */
+void GlobalPathPlannerRos::globalPathCallback(const geometry_msgs::PoseArray& msg) {
+  // register global path 
+  for (size_t i = 0; i < msg.poses.size(); i++) {
+    geometry_msgs::Pose pose; 
+    pose.position.x = msg.poses[i].position.x;
+    pose.position.y = msg.poses[i].position.y;
+    pose.position.z = msg.poses[i].position.z;
+    pose.orientation.x = msg.poses[i].orientation.x;
+    pose.orientation.y = msg.poses[i].orientation.y;
+    pose.orientation.z = msg.poses[i].orientation.z;
+    pose.orientation.w = msg.poses[i].orientation.w;
+    globalPath_.push_back(pose);
+  }
+  ROS_INFO("[GlobalPathPlannerRos]: Received global path");
+  globalPathSub_.shutdown();
 
-void GlobalPathPlannerRos::Initialize(double dt) {
-  // load parammeters
-  // load path
-  this->InitRos();
+  // unsubscribe from topic
+  for (int i = 0; i < globalPath_.size(); i++) {
+    geometry_msgs::Pose pose = globalPath_[i];
+    ROS_INFO_STREAM("pose " << i << ": " << pose.position.x << " " << pose.position.y << " "
+              << std::endl);
+  }
 }
 
 void GlobalPathPlannerRos::LoadPathFromFile(std::string filename) {}
@@ -74,8 +102,8 @@ bool GlobalPathPlannerRos::RequestPlanCurrentSegment(bool start_from_current_pos
     this->RequestPose(start);
   }
   try {
-    start = global_path_.at(current_segment_index_);
-    geometry_msgs::Pose goal = global_path_.at(current_segment_index_ + 1);
+    start = globalPath_.at(current_segment_index_);
+    geometry_msgs::Pose goal = globalPath_.at(current_segment_index_ + 1);
     ROS_INFO("Requesting plan from %f, %f, %f", start.position.x, start.position.y, start.orientation.w);
     // print start position
     ROS_INFO("start position from %f, %f, %f", start.position.x, start.position.y, start.orientation.w);
@@ -126,11 +154,11 @@ void GlobalPathPlannerRos::RequestStopTracking() {
 }
 
 void GlobalPathPlannerRos::LoadPath(std::vector<geometry_msgs::Pose>& path) {
-  global_path_ = path;
+  globalPath_ = path;
   current_segment_index_ = 0;
 }
 
-const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::GetPath() { return global_path_; }
+const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::GetPath() { return globalPath_; }
 
 void GlobalPathPlannerRos::LoadDummyPath() {
   geometry_msgs::Pose pose;
@@ -143,7 +171,7 @@ void GlobalPathPlannerRos::LoadDummyPath() {
   pose.orientation.y = q.y();
   pose.orientation.z = q.z();
   pose.orientation.w = q.w();
-  global_path_.push_back(pose);
+  globalPath_.push_back(pose);
 
   // pose.position.x = 5.0;
   // pose.position.y = 0.0;
@@ -160,7 +188,7 @@ void GlobalPathPlannerRos::LoadDummyPath() {
   pose.orientation.y = q_1.y();
   pose.orientation.z = q_1.z();
   pose.orientation.w = q_1.w();
-  global_path_.push_back(pose);
+  globalPath_.push_back(pose);
 
   pose.position.x = 10.0;
   pose.position.y = 30;
@@ -170,7 +198,7 @@ void GlobalPathPlannerRos::LoadDummyPath() {
   pose.orientation.y = q_2.y();
   pose.orientation.z = q_2.z();
   pose.orientation.w = q_2.w();
-  global_path_.push_back(pose);
+  globalPath_.push_back(pose);
 }
 
 void GlobalPathPlannerRos::LoadPathFromCsv(std::string filename) {
@@ -211,9 +239,9 @@ void GlobalPathPlannerRos::LoadPathFromCsv(std::string filename) {
 
     path.push_back(pose);
   }
-  global_path_ = path;
+  globalPath_ = path;
 }
 
-bool GlobalPathPlannerRos::CompletedPath() { return current_segment_index_ >= global_path_.size() - 1; }
+bool GlobalPathPlannerRos::CompletedPath() { return current_segment_index_ >= globalPath_.size() - 1; }
 
 }  // namespace m545_coverage_planner_ros

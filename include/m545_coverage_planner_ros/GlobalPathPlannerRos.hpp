@@ -1,6 +1,7 @@
 #pragma once
 #include <geometry_msgs/Pose.h>
 #include <m545_planner_msgs/PathFollowerTrackingStatusRos.h>
+#include <geometry_msgs/PoseArray.h>
 #include <ros/ros.h>
 
 #include <eigen3/Eigen/Dense>
@@ -41,6 +42,7 @@ class GlobalPathPlannerRos {
   bool CompletedPath();
   void LoadPath(std::vector<geometry_msgs::Pose>& path);
   void LoadDummyPath();
+  void globalPathCallback(const geometry_msgs::PoseArray& msg);
   /*!
     * \brief Load a vector of SE3 poses from a csv file
      \param filename The path to the csv file
@@ -49,16 +51,18 @@ class GlobalPathPlannerRos {
 
   // ros
   ros::NodeHandle nh_;
-  ros::Publisher global_path_pub_;
-  ros::Subscriber tracking_status_sub_;
+  ros::Publisher globalPathPub_;
+  ros::Subscriber globalPathSub_;
+  ros::Subscriber trackingStatusSub_;
 
   // params
   std::string control_command_topic_;
   std::string planning_service_name_;
   std::string current_state_service_name_;
+  std::string path_topic_;
 
   // global path
-  std::vector<geometry_msgs::Pose> global_path_;
+  std::vector<geometry_msgs::Pose> globalPath_;
   unsigned int current_segment_index_ = 0;
 };
 

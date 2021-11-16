@@ -5,6 +5,7 @@
     "functional": "cpp",
     "memory": "cpp",
     "optional": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "*.txx": "cpp"
   }
 }
