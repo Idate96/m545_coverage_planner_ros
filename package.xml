@@ -52,6 +52,7 @@
   <depend>eigen</depend>
   <depend>roscpp</depend>
   <depend>se2_navigation_msgs</depend>
+  <depend>se2_visualization_ros</depend>
   <depend>geometry_msgs</depend>
   <depend>m545_planner_msgs</depend>
   <depend>m545_path_utils</depend>

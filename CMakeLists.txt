@@ -13,6 +13,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   geometry_msgs
   m545_planner_msgs
   se2_navigation_msgs
+  se2_visualization_ros
   m545_path_utils
   roscpp
 )

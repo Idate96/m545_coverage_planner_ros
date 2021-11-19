@@ -28,26 +28,22 @@ class GlobalPathPlannerRos {
   GlobalPathPlannerRos() = default;
   ~GlobalPathPlannerRos();
 
-  void Initialize(double dt);
-  void InitRos();
-  void PublishGlobalPath();
-  void LoadPathFromFile(std::string filename);
-  void SetPath(std::vector<geometry_msgs::Pose>& path);
+  void initialize(double dt);
+  void initRos();
+
+  void setPath(std::vector<geometry_msgs::Pose>& path);
   const std::vector<geometry_msgs::Pose>& GetPath();
-  bool RequestPlan(geometry_msgs::Pose& start, geometry_msgs::Pose& goal);
-  bool RequestPlanCurrentSegment(bool start_from_current_pose);
-  void RequestStartTracking();
-  void RequestStopTracking();
-  void RequestPose(geometry_msgs::Pose& pose);
-  bool CompletedPath();
-  void LoadPath(std::vector<geometry_msgs::Pose>& path);
-  void LoadDummyPath();
+  
+  bool requestPlan(geometry_msgs::Pose& start, geometry_msgs::Pose& goal);
+  bool requestPlanCurrentSegment(bool start_from_current_pose);
+  void requestStartTracking();
+  void requestStopTracking();
+  void requestPose(geometry_msgs::Pose& pose);
+  
+  bool completedPath();
   void globalPathCallback(const geometry_msgs::PoseArray& msg);
-  /*!
-    * \brief Load a vector of SE3 poses from a csv file
-     \param filename The path to the csv file
-    */
-  void LoadPathFromCsv(std::string filename);
+  void publishPathPoints() const;
+  void publishPathPoses() const;
 
   // ros
   ros::NodeHandle nh_;
@@ -64,6 +60,7 @@ class GlobalPathPlannerRos {
   // global path
   std::vector<geometry_msgs::Pose> globalPath_;
   unsigned int current_segment_index_ = 0;
+
 };
 
 }  // namespace m545_coverage_planner_ros
