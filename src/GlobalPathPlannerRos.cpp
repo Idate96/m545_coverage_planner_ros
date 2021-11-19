@@ -22,7 +22,7 @@ void GlobalPathPlannerRos::initialize(double dt) {
   this->initRos();
 }
 
-void GlobalPathPlannerRos::InitRos() {
+void GlobalPathPlannerRos::initRos() {
   ROS_INFO("[GlobalPathPlannerRos]: Initialized");
   // load ros parameters
 
@@ -180,7 +180,7 @@ void GlobalPathPlannerRos::setPath(std::vector<geometry_msgs::Pose>& path) {
 
 const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::getPath() { return globalPath_; }
 
-bool GlobalPathPlannerRos::completedPat() { return current_segment_index_ >= globalPath_.size() - 1; }
+bool GlobalPathPlannerRos::completedPath() { return current_segment_index_ >= globalPath_.size() - 1; }
 
 
 // void GlobalPathPlannerRos::LoadDummyPath() {

@@ -32,7 +32,7 @@ class GlobalPathPlannerRos {
   void initRos();
 
   void setPath(std::vector<geometry_msgs::Pose>& path);
-  const std::vector<geometry_msgs::Pose>& GetPath();
+  const std::vector<geometry_msgs::Pose>& getPath();
   
   bool requestPlan(geometry_msgs::Pose& start, geometry_msgs::Pose& goal);
   bool requestPlanCurrentSegment(bool start_from_current_pose);
