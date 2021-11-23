@@ -40,7 +40,7 @@ void GlobalPathPlannerRos::initRos() {
 
 
 void GlobalPathPlannerRos::globalPathCallback(const geometry_msgs::PoseArray& msg) {
-
+  ROS_INFO("[GlobalPathPlannerRos]: Received global path");
   for (size_t i = 0; i < msg.poses.size(); i++) {
     geometry_msgs::Pose pose; 
     pose.position.x = msg.poses[i].position.x;
@@ -102,7 +102,7 @@ bool GlobalPathPlannerRos::requestPlan(geometry_msgs::Pose& start, geometry_msgs
   ROS_INFO("Requesting plan from %f, %f, %f to %f, %f, %f", start.position.x, start.position.y, start.orientation.w,
            goal.position.x, goal.position.y, goal.orientation.w);
 
-  bool service_call_result = true;
+  bool service_call_result;
   std::string service_name = planning_service_name_;
 
   se2_navigation_msgs::RequestPathSrv::Request req;
@@ -125,20 +125,25 @@ void GlobalPathPlannerRos::requestPose(geometry_msgs::Pose& pose) {
 }
 
 bool GlobalPathPlannerRos::requestPlanCurrentSegment(bool start_from_current_pose) {
-  ROS_INFO("Requesting plan from current segment at index %d", current_segment_index_);
+  ROS_INFO("Requesting plan from current segment at index %d", currentSegmentIndex_);
 
   geometry_msgs::Pose start;
   bool request_success;
-  if (start_from_current_pose) {
-    this->requestPose(start);
-  }
   try {
-    start = globalPath_.at(current_segment_index_);
-    geometry_msgs::Pose goal = globalPath_.at(current_segment_index_ + 1);
+    if (start_from_current_pose) {
+      this->requestPose(start);
+    } else {
+      if (currentSegmentIndex_ < 1) {
+        ROS_ERROR("Cannot request plan from current segment, because current segment index is smaller than 1");
+        return false;
+      }
+      start = globalPath_.at(currentSegmentIndex_ - 1);
+    }
+    geometry_msgs::Pose goal = globalPath_.at(currentSegmentIndex_);
 
     request_success = this->requestPlan(start, goal);
     if (request_success) {
-      current_segment_index_++;
+      currentSegmentIndex_++;
     }
   } catch (std::exception& e) {
     ROS_ERROR("Current segment index is out of bounds");
@@ -175,12 +180,16 @@ void GlobalPathPlannerRos::requestStopTracking() {
 
 void GlobalPathPlannerRos::setPath(std::vector<geometry_msgs::Pose>& path) {
   globalPath_ = path;
-  current_segment_index_ = 0;
+  currentSegmentIndex_ = 0;
 }
 
 const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::getPath() { return globalPath_; }
 
-bool GlobalPathPlannerRos::completedPath() { return current_segment_index_ >= globalPath_.size() - 1; }
+bool GlobalPathPlannerRos::completedPath() {
+  ROS_INFO_STREAM("Current index " << currentSegmentIndex_);
+  ROS_INFO_STREAM("Global path size " << globalPath_.size());
+  return currentSegmentIndex_ >= globalPath_.size();
+}
 
 
 // void GlobalPathPlannerRos::LoadDummyPath() {

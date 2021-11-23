@@ -39,7 +39,7 @@ class GlobalPathPlannerRos {
   void requestStartTracking();
   void requestStopTracking();
   void requestPose(geometry_msgs::Pose& pose);
-  
+
   bool completedPath();
   void globalPathCallback(const geometry_msgs::PoseArray& msg);
   void publishPathPoints() const;
@@ -59,7 +59,7 @@ class GlobalPathPlannerRos {
 
   // global path
   std::vector<geometry_msgs::Pose> globalPath_;
-  unsigned int current_segment_index_ = 0;
+  unsigned int currentSegmentIndex_ = 0;
 
 };
 
