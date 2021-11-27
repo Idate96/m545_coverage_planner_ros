@@ -1,15 +1,14 @@
 #include "m545_coverage_planner_ros/GlobalPathPlannerRos.hpp"
 
 #include <se2_navigation_msgs/RequestPathSrv.h>
-#include "se2_visualization_ros/visualization_helpers.hpp"
 #include <visualization_msgs/Marker.h>
 #include <algorithm>
 #include <fstream>
-
 #include "m545_path_utils/Helpers.hpp"
 #include "se2_navigation_msgs/ControllerCommand.hpp"
 #include "se2_navigation_msgs/RequestCurrentStateSrv.h"
 #include "se2_navigation_msgs/SendControllerCommandSrv.h"
+#include "se2_visualization_ros/visualization_helpers.hpp"
 
 // include std::experimental
 // #include <experimental/filesystem>
@@ -23,26 +22,28 @@ void GlobalPathPlannerRos::initialize(double dt) {
 }
 
 void GlobalPathPlannerRos::initRos() {
-  ROS_INFO("[GlobalPathPlannerRos]: Initialized");
-  // load ros parameters
-
-  // initialize parameters
-  nh_.param<std::string>("control_command_topic", control_command_topic_, "/m545_path_follower_ros/command");
-  nh_.param<std::string>("planning_service", planning_service_name_,
-                         "/m545_planner_node/ompl_rs_planner_ros/planning_service");
-  nh_.param<std::string>("current_state_service", current_state_service_name_,
-                         "/m545_path_follower_ros/get_curr_se2_state");
-  nh_.param<std::string>("path_topic", path_topic_, "/coverage/poses");
-  globalPathSub_ = nh_.subscribe(path_topic_, 1, &GlobalPathPlannerRos::globalPathCallback, this);    
+  if (
+      // initialize parameters
+      nh_.param<std::string>("control_command_topic", control_command_topic_, "/m545_path_follower_ros/command") &&
+      nh_.param<std::string>("planning_service", planning_service_name_, "/m545_planner_node/ompl_rs_planner_ros/planning_service") &&
+      nh_.param<std::string>("current_state_service", current_state_service_name_, "/m545_path_follower_ros/get_curr_se2_state") &&
+      nh_.param<std::string>("path_topic", path_topic_, "/coverage/poses") &&
+      nh_.param<int>("global_path_tracker/start_index", currentSegmentIndex_, 0)) {
+    ROS_INFO("[GlobalPathPlannerRos]: Parameters loaded");
+    ROS_INFO_STREAM("[GlobalPathPlannerRos]: starting index " << currentSegmentIndex_);
+  } else {
+    ROS_ERROR("[GlobalPathPlannerRos]: Failed to load parameters");
+  }
+  globalPathSub_ = nh_.subscribe(path_topic_, 1, &GlobalPathPlannerRos::globalPathCallback, this);
   // for visualization purposes
-  globalPathPub_ = nh_.advertise<visualization_msgs::MarkerArray>("global_path_tracker/path_vis", 1);                   
+  globalPathPub_ = nh_.advertise<visualization_msgs::MarkerArray>("global_path_tracker/path_vis", 1);
+  globalTrackingStatusPub_ = nh_.advertise<std_msgs::Bool>("global_path_tracker/tracking_status", 1);
 }
-
 
 void GlobalPathPlannerRos::globalPathCallback(const geometry_msgs::PoseArray& msg) {
   ROS_INFO("[GlobalPathPlannerRos]: Received global path");
   for (size_t i = 0; i < msg.poses.size(); i++) {
-    geometry_msgs::Pose pose; 
+    geometry_msgs::Pose pose;
     pose.position.x = msg.poses[i].position.x;
     pose.position.y = msg.poses[i].position.y;
     pose.position.z = msg.poses[i].position.z;
@@ -54,7 +55,6 @@ void GlobalPathPlannerRos::globalPathCallback(const geometry_msgs::PoseArray& ms
   }
   publishPathPoses();
 }
-
 
 void GlobalPathPlannerRos::publishPathPoints() const {
   visualization_msgs::MarkerArray msg;
@@ -76,7 +76,6 @@ void GlobalPathPlannerRos::publishPathPoints() const {
   globalPathPub_.publish(msg);
 }
 
-
 void GlobalPathPlannerRos::publishPathPoses() const {
   visualization_msgs::MarkerArray msg;
   int id = 0;
@@ -85,22 +84,21 @@ void GlobalPathPlannerRos::publishPathPoses() const {
   msg.markers.reserve(globalPath_.size());
   for (const auto& pose : globalPath_) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "map"; // path frame 
+    marker.header.frame_id = "map";  // path frame
     marker.ns = "";
     marker.header.stamp = ros::Time::now();
     marker.id = id++;
     Eigen::Vector3d pos(pose.position.x, pose.position.y, z);
     Eigen::Quaternion q(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-    se2_visualization_ros::drawArrowFromPositionOrientation(pos, q, se2_visualization_ros::Color::Yellow(),
-                                                             0.8, 0.2, &marker);
+    se2_visualization_ros::drawArrowFromPositionOrientation(pos, q, se2_visualization_ros::Color::Yellow(), 0.8, 0.2, &marker);
     msg.markers.push_back(marker);
   }
   globalPathPub_.publish(msg);
 }
 
 bool GlobalPathPlannerRos::requestPlan(geometry_msgs::Pose& start, geometry_msgs::Pose& goal) {
-  ROS_INFO("Requesting plan from %f, %f, %f to %f, %f, %f", start.position.x, start.position.y, start.orientation.w,
-           goal.position.x, goal.position.y, goal.orientation.w);
+  ROS_INFO("Requesting plan from %f, %f, %f to %f, %f, %f", start.position.x, start.position.y, start.orientation.w, goal.position.x,
+           goal.position.y, goal.orientation.w);
 
   bool service_call_result;
   std::string service_name = planning_service_name_;
@@ -126,43 +124,57 @@ void GlobalPathPlannerRos::requestPose(geometry_msgs::Pose& pose) {
 
 bool GlobalPathPlannerRos::requestPlanCurrentSegment(bool start_from_current_pose) {
   ROS_INFO("Requesting plan from current segment at index %d", currentSegmentIndex_);
-
-  geometry_msgs::Pose start;
   bool request_success;
-  try {
-    if (start_from_current_pose) {
-      this->requestPose(start);
-    } else {
-      if (currentSegmentIndex_ < 1) {
-        ROS_ERROR("Cannot request plan from current segment, because current segment index is smaller than 1");
-        return false;
+  if (!this->completedPath()) {
+    geometry_msgs::Pose start;
+    try {
+      if (start_from_current_pose) {
+        this->requestPose(start);
+      } else {
+        if (currentSegmentIndex_ < 1) {
+          ROS_ERROR("Cannot request plan from current segment, because current segment index is smaller than 1");
+          return false;
+        }
+        start = globalPath_.at(currentSegmentIndex_ - 1);
       }
-      start = globalPath_.at(currentSegmentIndex_ - 1);
-    }
-    geometry_msgs::Pose goal = globalPath_.at(currentSegmentIndex_);
+      geometry_msgs::Pose goal = globalPath_.at(currentSegmentIndex_);
 
-    request_success = this->requestPlan(start, goal);
-    if (request_success) {
-      currentSegmentIndex_++;
+      request_success = this->requestPlan(start, goal);
+      if (request_success) {
+        currentSegmentIndex_++;
+      }
+    } catch (std::exception& e) {
+      ROS_ERROR("Current segment index is out of bounds");
+      return false;
     }
-  } catch (std::exception& e) {
-    ROS_ERROR("Current segment index is out of bounds");
-    return false;
   }
+  bool is_completed = this->completedPath();
+  // convert into ros msgs Bool
+  std_msgs::Bool msg;
+  msg.data = is_completed;
+  globalTrackingStatusPub_.publish(msg);
   return request_success;
 }
 
 void GlobalPathPlannerRos::requestStartTracking() {
   ROS_INFO("Requesting start tracking");
-  se2_navigation_msgs::ControllerCommand command;
-  command.command_ = se2_navigation_msgs::ControllerCommand::Command::StartTracking;
+  if (!this->completedPath()) {
+    se2_navigation_msgs::ControllerCommand command;
+    command.command_ = se2_navigation_msgs::ControllerCommand::Command::StartTracking;
 
-  se2_navigation_msgs::SendControllerCommandSrv::Request req;
-  se2_navigation_msgs::SendControllerCommandSrv::Response res;
+    se2_navigation_msgs::SendControllerCommandSrv::Request req;
+    se2_navigation_msgs::SendControllerCommandSrv::Response res;
 
-  req.command = se2_navigation_msgs::convert(command);
-  std::string service_name = control_command_topic_;
-  CallService(req, res, service_name);
+    req.command = se2_navigation_msgs::convert(command);
+    std::string service_name;
+    service_name = control_command_topic_;
+    CallService(req, res, service_name);
+  }
+  bool is_completed = this->completedPath();
+  // convert into ros msgs Bool
+  std_msgs::Bool msg;
+  msg.data = is_completed;
+  globalTrackingStatusPub_.publish(msg);
 }
 
 void GlobalPathPlannerRos::requestStopTracking() {
@@ -183,14 +195,15 @@ void GlobalPathPlannerRos::setPath(std::vector<geometry_msgs::Pose>& path) {
   currentSegmentIndex_ = 0;
 }
 
-const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::getPath() { return globalPath_; }
-
-bool GlobalPathPlannerRos::completedPath() {
-  ROS_INFO_STREAM("Current index " << currentSegmentIndex_);
-  ROS_INFO_STREAM("Global path size " << globalPath_.size());
-  return currentSegmentIndex_ >= globalPath_.size();
+const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::getPath() {
+  return globalPath_;
 }
 
+bool GlobalPathPlannerRos::completedPath() const {
+  // ROS_INFO_STREAM("Current index " << currentSegmentIndex_);
+  // ROS_INFO_STREAM("Global path size " << globalPath_.size());
+  return currentSegmentIndex_ > globalPath_.size();
+}
 
 // void GlobalPathPlannerRos::LoadDummyPath() {
 //   geometry_msgs::Pose pose;
@@ -273,6 +286,5 @@ bool GlobalPathPlannerRos::completedPath() {
 //   }
 //   globalPath_ = path;
 // }
-
 
 }  // namespace m545_coverage_planner_ros

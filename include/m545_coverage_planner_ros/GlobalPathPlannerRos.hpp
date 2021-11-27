@@ -3,7 +3,7 @@
 #include <m545_planner_msgs/PathFollowerTrackingStatusRos.h>
 #include <geometry_msgs/PoseArray.h>
 #include <ros/ros.h>
-
+#include "std_msgs/Bool.h"
 #include <eigen3/Eigen/Dense>
 
 namespace m545_coverage_planner_ros {
@@ -40,7 +40,7 @@ class GlobalPathPlannerRos {
   void requestStopTracking();
   void requestPose(geometry_msgs::Pose& pose);
 
-  bool completedPath();
+  bool completedPath() const;
   void globalPathCallback(const geometry_msgs::PoseArray& msg);
   void publishPathPoints() const;
   void publishPathPoses() const;
@@ -48,6 +48,7 @@ class GlobalPathPlannerRos {
   // ros
   ros::NodeHandle nh_;
   ros::Publisher globalPathPub_;
+  ros::Publisher globalTrackingStatusPub_;
   ros::Subscriber globalPathSub_;
   ros::Subscriber trackingStatusSub_;
 
@@ -56,10 +57,12 @@ class GlobalPathPlannerRos {
   std::string planning_service_name_;
   std::string current_state_service_name_;
   std::string path_topic_;
+  bool tracking_;
 
   // global path
   std::vector<geometry_msgs::Pose> globalPath_;
-  unsigned int currentSegmentIndex_ = 0;
+  // start tracking poses from this index onwards
+  int currentSegmentIndex_ = 0;
 
 };
 
