@@ -202,7 +202,7 @@ const std::vector<geometry_msgs::Pose>& GlobalPathPlannerRos::getPath() {
 bool GlobalPathPlannerRos::completedPath() const {
   // ROS_INFO_STREAM("Current index " << currentSegmentIndex_);
   // ROS_INFO_STREAM("Global path size " << globalPath_.size());
-  return currentSegmentIndex_ > globalPath_.size();
+  return currentSegmentIndex_ >= globalPath_.size();
 }
 
 // void GlobalPathPlannerRos::LoadDummyPath() {
