@@ -123,6 +123,12 @@ void GlobalPathPlannerRos::requestPose(geometry_msgs::Pose& pose) {
 }
 
 bool GlobalPathPlannerRos::requestPlanCurrentSegment(bool start_from_current_pose) {
+  bool is_completed = this->completedPath();
+  // convert into ros msgs Bool
+  std_msgs::Bool msg;
+  msg.data = is_completed;
+  globalTrackingStatusPub_.publish(msg);
+
   ROS_INFO("Requesting plan from current segment at index %d", currentSegmentIndex_);
   bool request_success;
   if (!this->completedPath()) {
@@ -148,11 +154,7 @@ bool GlobalPathPlannerRos::requestPlanCurrentSegment(bool start_from_current_pos
       return false;
     }
   }
-  bool is_completed = this->completedPath();
-  // convert into ros msgs Bool
-  std_msgs::Bool msg;
-  msg.data = is_completed;
-  globalTrackingStatusPub_.publish(msg);
+
   return request_success;
 }
 

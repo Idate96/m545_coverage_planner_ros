@@ -56,6 +56,7 @@
   <depend>geometry_msgs</depend>
   <depend>m545_planner_msgs</depend>
   <depend>m545_path_utils</depend>
+  <exec_depend>coverage_planning</exec_depend>
   <test_depend>gtest</test_depend>
   
 </package>
